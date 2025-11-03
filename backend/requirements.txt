@@ -8,3 +8,7 @@ aiofiles
 werkzeug
 qrcode[pil]           # QR code generation
 pillow                # Image processing
+
+
+dnspython
+python-dotenv
