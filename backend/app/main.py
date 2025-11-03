@@ -4,10 +4,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from . import db, auth, signaling, models
 from .models import DeviceCreate, UserCreate, UserLogin
 from .camera_routes import router as camera_router
-from werkzeug.security import generate_password_hash, check_password_hash
 import uuid
 import json
-from jose import jwt
 
 app = FastAPI(
     title="VisionConnect Backend",
@@ -42,19 +40,26 @@ async def root():
 @app.post("/api/register")
 async def register(user: UserCreate):
     """User registration - creates new account"""
+    # Check if email already exists
     existing = await db.users_collection.find_one({"email": user.email})
     if existing:
         raise HTTPException(status_code=400, detail="Email already registered")
-    hashed = generate_password_hash(user.password)
+    
+    # Hash password using auth utility
+    hashed_password = auth.hash_password(user.password)
+    
+    # Create user document
     user_doc = {
         "email": user.email, 
-        "password": hashed,
+        "password": hashed_password,
         "created_at": None  # You can add datetime if needed
     }
+    
+    # Insert into MongoDB
     res = await db.users_collection.insert_one(user_doc)
     user_id = str(res.inserted_id)
     
-    # Auto-login: generate token
+    # Auto-login: generate JWT token
     token = auth.create_access_token({"user_id": user_id, "email": user.email})
     
     return {
@@ -67,10 +72,20 @@ async def register(user: UserCreate):
 @app.post("/api/login")
 async def login(user: UserLogin):
     """User login - returns JWT token for authenticated requests"""
+    # Find user by email
     doc = await db.users_collection.find_one({"email": user.email})
-    if not doc or not check_password_hash(doc["password"], user.password):
+    
+    # Check if user exists
+    if not doc:
         raise HTTPException(status_code=401, detail="Invalid credentials")
+    
+    # Verify password using auth utility
+    if not auth.verify_password(doc["password"], user.password):
+        raise HTTPException(status_code=401, detail="Invalid credentials")
+    
+    # Generate JWT token
     token = auth.create_access_token({"user_id": str(doc["_id"]), "email": doc["email"]})
+    
     return {
         "access_token": token, 
         "token_type": "bearer",
