@@ -19,8 +19,9 @@ from .models import (
 
 router = APIRouter(prefix="/api/camera", tags=["camera"])
 
-# Configuration - in production, use environment variable
-SERVER_URL = "https://yourapp.onrender.com"  # Change this to your actual Render URL
+# Configuration - Get from environment variable or use default
+import os
+SERVER_URL = os.environ.get("RENDER_EXTERNAL_URL", "http://localhost:8000")
 
 # ===== Helper Functions =====
 async def get_current_user(authorization: Optional[str] = Header(None)):
