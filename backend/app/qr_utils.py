@@ -46,9 +46,9 @@ def generate_qr_data(
             "s": wifi_ssid,         # SSID
             "p": wifi_password,     # Password
             "t": device_token,      # Token
-            "u": server_url,        # URL
-            "m": camera_model,      # Model
-            "i": user_id,           # User ID
+            # "u": server_url,        # URL
+            # "m": camera_model,      # Model
+            # "i": user_id,           # User ID
             "v": 1                  # Version (integer)
         }
     else:
