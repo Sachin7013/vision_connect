@@ -2,6 +2,9 @@ fastapi
 uvicorn[standard]
 motor                 # async MongoDB driver
 python-jose[cryptography]   # JWT (or PyJWT)
-pydantic
+pydantic[email]       # with email validation
 python-multipart
 aiofiles
+werkzeug
+qrcode[pil]           # QR code generation
+pillow                # Image processing

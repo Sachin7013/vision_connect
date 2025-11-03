@@ -2,12 +2,18 @@
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from . import db, auth, signaling, models
-from .models import DeviceCreate, UserCreate
+from .models import DeviceCreate, UserCreate, UserLogin
+from .camera_routes import router as camera_router
 from werkzeug.security import generate_password_hash, check_password_hash
 import uuid
+import json
 from jose import jwt
 
-app = FastAPI(title="VisionConnect Backend")
+app = FastAPI(
+    title="VisionConnect Backend",
+    description="P2P WiFi IP Camera Management System",
+    version="1.0.0"
+)
 
 # CORS - allow your frontend origin (during dev you likely use file:// or http://localhost)
 app.add_middleware(
@@ -18,25 +24,59 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Include camera onboarding routes
+app.include_router(camera_router)
+
+# ---------- Health Check ----------
+@app.get("/")
+async def root():
+    """API health check"""
+    return {
+        "status": "online",
+        "service": "VisionConnect Backend",
+        "version": "1.0.0",
+        "docs": "/docs"
+    }
+
 # ---------- REST: simple user register/login ----------
 @app.post("/api/register")
 async def register(user: UserCreate):
+    """User registration - creates new account"""
     existing = await db.users_collection.find_one({"email": user.email})
     if existing:
         raise HTTPException(status_code=400, detail="Email already registered")
     hashed = generate_password_hash(user.password)
-    user_doc = {"email": user.email, "password": hashed}
+    user_doc = {
+        "email": user.email, 
+        "password": hashed,
+        "created_at": None  # You can add datetime if needed
+    }
     res = await db.users_collection.insert_one(user_doc)
     user_id = str(res.inserted_id)
-    return {"user_id": user_id, "email": user.email}
+    
+    # Auto-login: generate token
+    token = auth.create_access_token({"user_id": user_id, "email": user.email})
+    
+    return {
+        "user_id": user_id, 
+        "email": user.email,
+        "access_token": token,
+        "token_type": "bearer"
+    }
 
 @app.post("/api/login")
-async def login(user: UserCreate):
+async def login(user: UserLogin):
+    """User login - returns JWT token for authenticated requests"""
     doc = await db.users_collection.find_one({"email": user.email})
     if not doc or not check_password_hash(doc["password"], user.password):
         raise HTTPException(status_code=401, detail="Invalid credentials")
     token = auth.create_access_token({"user_id": str(doc["_id"]), "email": doc["email"]})
-    return {"access_token": token, "token_type": "bearer"}
+    return {
+        "access_token": token, 
+        "token_type": "bearer",
+        "user_id": str(doc["_id"]),
+        "email": doc["email"]
+    }
 
 # ---------- REST: register a camera (called by the phone after scanning/generating QR) ----------
 @app.post("/api/devices")
