@@ -47,7 +47,7 @@ class DeviceCreate(BaseModel):
 class DeviceInDB(BaseModel):
     """Camera stored in database"""
     device_id: str
-    device_uid: str  # Hardware UID
+    device_uid: Optional[str] = None  # Hardware UID (None until camera activates)
     device_name: str
     camera_model: str
     owner_id: str
