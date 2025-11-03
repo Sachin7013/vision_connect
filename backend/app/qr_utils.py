@@ -14,7 +14,8 @@ def generate_qr_data(
     server_url: str,
     device_token: str,
     user_id: str,
-    camera_model: str
+    camera_model: str,
+    compact: bool = True
 ) -> Dict:
     """
     Generate data structure to be encoded in QR code
@@ -23,16 +24,45 @@ def generate_qr_data(
     1. Connect to WiFi network
     2. Register itself with your cloud server
     3. Link to the user who scanned the QR
+    
+    Args:
+        compact: If True, uses short keys (like Ezykam+) for smaller QR code
+                 If False, uses descriptive keys (easier to debug)
+    
+    Format (compact=True) - Similar to CP Plus Ezykam+:
+        {
+            "s": "WiFi_Name",      // SSID
+            "p": "password123",    // Password
+            "t": "device_token",   // Token
+            "u": "server_url",     // URL
+            "m": "camera_model",   // Model
+            "i": "user_id",        // User ID
+            "v": 1                 // Version
+        }
     """
-    qr_payload = {
-        "wifi_ssid": wifi_ssid,
-        "wifi_password": wifi_password,
-        "server_url": server_url,
-        "device_token": device_token,
-        "user_id": user_id,
-        "camera_model": camera_model,
-        "version": "1.0"
-    }
+    if compact:
+        # Compact format (like Ezykam+) - smaller QR code
+        qr_payload = {
+            "s": wifi_ssid,         # SSID
+            "p": wifi_password,     # Password
+            "t": device_token,      # Token
+            "u": server_url,        # URL
+            "m": camera_model,      # Model
+            "i": user_id,           # User ID
+            "v": 1                  # Version (integer)
+        }
+    else:
+        # Descriptive format - easier to debug
+        qr_payload = {
+            "wifi_ssid": wifi_ssid,
+            "wifi_password": wifi_password,
+            "server_url": server_url,
+            "device_token": device_token,
+            "user_id": user_id,
+            "camera_model": camera_model,
+            "version": "1.0"
+        }
+    
     return qr_payload
 
 def create_qr_code_image(data: Dict, size: int = 10) -> str:
@@ -71,3 +101,34 @@ def create_qr_code_url(data: Dict, size: int = 10) -> str:
     Useful for mobile apps to display directly
     """
     return create_qr_code_image(data, size)
+
+def decode_qr_data(qr_data: Dict) -> Dict:
+    """
+    Decode QR data from compact format to full format
+    Camera scans compact QR, server converts to readable format
+    
+    Args:
+        qr_data: Dictionary from scanned QR code
+    
+    Returns:
+        Dictionary with full descriptive keys
+    
+    Example:
+        Input:  {"s": "MyWiFi", "p": "pass123", "t": "token", ...}
+        Output: {"wifi_ssid": "MyWiFi", "wifi_password": "pass123", ...}
+    """
+    # Check if it's already in compact format
+    if "s" in qr_data:
+        # Compact format - decode it
+        return {
+            "wifi_ssid": qr_data.get("s"),
+            "wifi_password": qr_data.get("p"),
+            "device_token": qr_data.get("t"),
+            "server_url": qr_data.get("u"),
+            "camera_model": qr_data.get("m"),
+            "user_id": qr_data.get("i"),
+            "version": qr_data.get("v", 1)
+        }
+    else:
+        # Already in full format
+        return qr_data
