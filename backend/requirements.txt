@@ -12,3 +12,6 @@ pillow                # Image processing
 
 dnspython
 python-dotenv
+onvif-zeep              # ONVIF protocol support
+wsdiscovery             # Network device discovery
+opencv-python-headless  # Video stream processing (optional)

@@ -4,6 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from . import db, auth, signaling, models
 from .models import DeviceCreate, UserCreate, UserLogin
 from .camera_routes import router as camera_router
+from .onvif_routes import router as onvif_router
 import uuid
 import json
 
@@ -24,6 +25,9 @@ app.add_middleware(
 
 # Include camera onboarding routes
 app.include_router(camera_router)
+
+# Include ONVIF camera discovery routes
+app.include_router(onvif_router)
 
 # ---------- Health Check ----------
 @app.get("/")
