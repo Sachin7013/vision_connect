@@ -1,0 +1,7 @@
+fastapi
+uvicorn[standard]
+motor                 # async MongoDB driver
+python-jose[cryptography]   # JWT (or PyJWT)
+pydantic
+python-multipart
+aiofiles
